@@ -18,6 +18,7 @@ Sonora is a cross-platform Flutter music streaming app that uses **YouTube Music
 | Fonts | `google_fonts` | ^9.0.0 |
 | YTM Data | `dart_ytmusic_api` | git (`gmstyle/dart_ytmusic_api`) |
 | Stream URL | `youtube_explode_dart` | git (`gmstyle/youtube_explode_dart`) |
+| WebView JS Runner | `youtube_explode_webview` | git (`gmstyle/youtube_explode_dart`, `packages/youtube_explode_webview`) |
 | HTTP & AI transport | `dio` | ^5.9.2 |
 | Markdown rendering | `gpt_markdown` | ^1.4.1 |
 | Casting | `dart_cast` | ^0.7.3 |
@@ -97,8 +98,10 @@ lib/
 │       ├── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
 │       ├── device_link.dart            # AES-256-GCM LAN QR offer + SAS confirmation code
 │       ├── device_link_server.dart     # Ephemeral LAN HTTP server receiving sealed sessions
-│       ├── local_audio_proxy_server.dart # 127.0.0.1 loopback HTTP proxy server (shelf) for stream resilience & 429 retry
+│       ├── js_runner_factory.dart      # WebViewJsRunner (Android) / ChromiumCdpJsRunner (Linux)
+│       ├── local_audio_proxy_server.dart # 127.0.0.1 loopback HTTP proxy server (shelf) for direct + SABR streams
 │       ├── media_cache_service.dart    # LRU disk cache service (500MB max limit)
+│       ├── sabr_proxy_session.dart     # Sparse .tmp HTTP 200/206 bridge + time-based SABR seek
 │       ├── sync_service.dart           # P2P local synchronization service
 │       ├── webview_cookie_reader.dart  # Android WebView cookie export helper
 │       ├── youtube_account_service.dart # Applies, persists, and clears the YTM session
@@ -235,7 +238,7 @@ A standalone headless CLI shares the same data layer as the GUI, usable from the
 **`lib/cli/sonora_cli_provider.dart`** initialises dependencies without Flutter, in two stages:
 
 - `initializeLocal()` — `AppDatabase` via `NativeDatabase` (Drift's pure-Dart VM driver) + `LibraryRepositoryImpl`. Used by `play` (completed downloads), `library`, and `history`. No Innertube contact.
-- `initializeRemote()` — local store plus `YTMusic` / `YtmusicDatasource`, `MusicRepositoryImpl`, `StreamDatasource`, and `Dio`. Used by `search`, `download`, and `play` only when the `videoId` is not already downloaded.
+- `initializeRemote()` — local store plus `YTMusic` / `YtmusicDatasource`, `MusicRepositoryImpl`, `StreamDatasource` (wired with `YtmSessionHttpClient` and, on Linux, `ChromiumCdpJsRunner` → `BotGuardPoTokenProvider` + `RunnerEJSSolver` when a Chromium binary is in `PATH`), and `Dio`. Used by `search`, `download`, and `play` only when the `videoId` is not already downloaded.
 
 `bin/sonora.dart` picks the stage from the command; `play` can upgrade to remote mid-command if `resolveCompletedDownloadUrl` finds nothing.
 
@@ -247,7 +250,7 @@ Each command in `lib/cli/commands/` implements a single `execute(ArgResults)` me
 |---------|------|-------------|
 | `search` | `search_command.dart` | Search songs, albums, artists, playlists, videos |
 | `play` | `play_command.dart` | Play a completed local download (offline) or stream via mpv/ffplay/vlc; `--player url` prints the URI |
-| `download` | `download_command.dart` | Download song with Dio progress bar |
+| `download` | `download_command.dart` | Download song via `StreamDatasource` (`getManifest` + `downloadStreamToFile`, direct & SABR) |
 | `library` | `library_command.dart` | List/add/remove library items |
 | `history` | `history_command.dart` | View or clear listening history |
 
@@ -474,17 +477,21 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
     - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`).
     - Catalog music videos use the same audio-only proxy path.
   - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` leftovers are ignored.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler` (bounded concurrency, min spacing, post-429 cool-down).
-  - **Transparent Auto-Retry & URL Refresh**: On CDN `403` or `5xx`, the proxy invalidates the cached plan, resolves a fresh URL, and retries (up to 3). On CDN `429` it opens the shared cool-down and does **not** cascade into more Innertube manifest calls. Socket drops still refresh the URL when the cool-down is inactive.
-  - **YTM session bridge**: `StreamDatasource` builds `YoutubeExplode` with `YtmSessionHttpClient` and `YoutubeClientPolicy`. Cookieless native clients (`VISIONOS`, `ANDROID_VR`, `IOS`, `ANDROID`, `ANDROID_MUSIC`) and anonymous `visitorData` bootstrap endpoints (`/youtubei/v1/visitor_id`, `/sw.js_data`) strip browser cookies, `Authorization`, and `Origin` while preserving caller-provided anonymous `X-Goog-Visitor-Id` and enforcing per-client `User-Agent` on `googlevideo.com`. Authenticated `youtube.com` calls (such as `TVHTML5`) inject `.youtube.com` cookies (`SOCS=CAI`), `VISITOR_DATA`, `SAPISIDHASH` (without Music's `_u`), `X-Goog-AuthUser`, `X-Goog-PageId`, and absorb `Set-Cookie` rotations and `LOGIN_INFO` revocations. `LocalAudioProxyServer` attaches `.youtube.com` cookies only when `YoutubeClientPolicy.shouldAttachCookiesForStreamUrl` is true.
-  - **Manifest path**: Prefer `visionos` + `androidVr` (`1.65.10`) with `requireWatchPage: false`, fall back to `tv` (`requireWatchPage: true` for `STS`/cipher), and then `androidMusic` (`requireWatchPage: false`). HTTP 429 trips a ~15 min cool-down (`YoutubeRateLimitedException` fail-fast); look-ahead resolve and `cacheAudio` pause while cooling down.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, resolves the playback selection via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler` (bounded concurrency, min spacing, post-429 cool-down).
+  - **SABR/UMP Proxy Bridge (`SabrProxySession`)**: When `StreamDatasource.cachedSabrStream` returns a `SabrAudioStreamInfo`, `LocalAudioProxyServer._serveSabrStream` opens or reuses a `SabrProxySession` (up to 2 LRU sessions keyed by `videoId|qa` and checked on `tag` + `url`). `SabrProxySession` pumps `StreamDatasource.openSabrStream(...).chunks()` into a sparse temporary file and serves HTTP `200`/`206` byte-range responses (`Accept-Ranges: bytes`). Out-of-buffer seeks estimate the target timestamp from recorded segment timings or proportional offset and restart `SabrStream` at `initialPlayerTimeMs`. Completed full-file buffers are promoted into `MediaCacheService` (awaited by `dispose()` before temp cleanup). `StreamProtectionStatus = 3` / `403` invalidates the PO token session and active SABR sessions; `429` opens the shared rate-limit cool-down.
+  - **Transparent Auto-Retry & URL Refresh**: On CDN `403` or `5xx`, the proxy invalidates the cached plan, resolves a fresh URL, and retries (up to 3) — seamlessly switching to `_serveSabrStream` if the refreshed manifest resolves to SABR. On CDN `429` it opens the shared cool-down and does **not** cascade into more Innertube manifest calls. Socket drops still refresh the URL when the cool-down is inactive.
+  - **YTM session bridge & JS runner**: `StreamDatasource` builds `YoutubeExplode` with `YtmSessionHttpClient`, `YoutubeClientPolicy`, and a shared `BaseWebJsRunner` (`WebViewJsRunner` lazily created on Android/ATV; `ChromiumCdpJsRunner` on Linux, disposed on tray quit / restart) feeding both `BotGuardPoTokenProvider` and `RunnerEJSSolver`. Cookieless native clients (`VISIONOS`, `ANDROID_VR`, `IOS`, `ANDROID`, `ANDROID_MUSIC`) and anonymous `visitorData` bootstrap endpoints (`/youtubei/v1/visitor_id`, `/sw.js_data`) strip browser cookies, `Authorization`, and `Origin` while preserving caller-provided anonymous `X-Goog-Visitor-Id` and enforcing per-client `User-Agent` on `googlevideo.com`. Authenticated `youtube.com` / `music.youtube.com` calls (such as `WEB_REMIX` and `TVHTML5`) inject `.youtube.com` cookies (`SOCS=CAI`), `VISITOR_DATA`, `SAPISIDHASH`, `X-Goog-AuthUser`, `X-Goog-PageId`, and absorb `Set-Cookie` rotations and `LOGIN_INFO` revocations. `LocalAudioProxyServer` attaches `.youtube.com` cookies only when `YoutubeClientPolicy.shouldAttachCookiesForStreamUrl` is true.
+  - **Manifest cascade**:
+    - *Signed in + JS runner available*: `webRemix` (`requireWatchPage: false`, BotGuard PO token + EJS `n`/`sig`, falling back to SABR on 403 direct probe) → `visionosSabr` → `visionos` + `androidVr` → `tv` (`requireWatchPage: true`) → `androidMusic`.
+    - *Signed out or no JS runner*: `visionosSabr` + `visionos` (cookieless, no BotGuard/WebView startup) → `androidVr` → (`webRemix` if runner exists) → `tv` → `androidMusic`.
+    - HTTP 429 trips a ~15 min cool-down (`YoutubeRateLimitedException` fail-fast); look-ahead resolve and `cacheAudio` pause while cooling down.
   - **Background Cache Population**: As remote streams play, audio is saved asynchronously via `StreamDatasource.cacheAudio` → youtube_explode `StreamClient` (same authenticated downloader as library downloads; not a raw Dio GET). Lookahead prefetch (`TrackUrlResolver`) uses the same path and skips work during cool-down. Changing stream audio quality clears this cache.
   - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` (e.g. persist playback pointer). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
   - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`) and downloads (`Settings.downloadQuality`).
-  - Playback always picks audio-only: `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
-  - **Downloads**: always audio-only using `downloadQuality`, even when the catalog item `isVideo` (that flag is stored as metadata only). Cast uses the same audio `select` path.
+  - Playback picks audio-only in order: `manifest.audioOnly` (direct) → `manifest.sabrAudio` (SABR), tiered via `sortByBitrate()` (high = first, mid = median, low = last), falling back to the best `manifest.muxed` stream if both are empty.
+  - **Downloads**: always audio-only using `downloadQuality`, even when the catalog item `isVideo` (that flag is stored as metadata only). Cast routes through `LocalAudioProxyServer.getCastStreamUrlForVideo` (rejecting raw `?sabr` URLs) so SABR tracks stream via the phone's LAN proxy.
   - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
@@ -1143,7 +1150,7 @@ flutter gen-l10n
 
 ## 14. Git Dependencies
 
-`dart_ytmusic_api` and `youtube_explode_dart` are git dependencies pointing at `gmstyle`'s forks (tracking `dev` / default branch):
+`dart_ytmusic_api`, `youtube_explode_dart`, and `youtube_explode_webview` are git dependencies pointing at `gmstyle`'s forks (tracking `dev` / default branch):
 
 ```yaml
 dart_ytmusic_api:
@@ -1153,6 +1160,11 @@ dart_ytmusic_api:
 youtube_explode_dart:
   git:
     url: https://github.com/gmstyle/youtube_explode_dart.git
+
+youtube_explode_webview:
+  git:
+    url: https://github.com/gmstyle/youtube_explode_dart.git
+    path: packages/youtube_explode_webview
 ```
 
 Album, playlist and artist list rows expose `SongDetailed.isPlayable` / `VideoDetailed.isPlayable` from YouTube Music's grey-out display policy. Detail screens and catalog cards keep unplayable rows in the list (dimmed + ban icon); the song context menu hides play / queue / radio / download / add-to-playlist / new like (unlike remains if the row was already saved). `PlayAlbumUseCase` / `PlayPlaylistUseCase` drop them before building the queue. YouTube playlist sync/refresh and Spotify import matching also skip unplayable candidates (`skippedCount` / `skipped`). See `lib/core/utils/playable_tracks.dart`.
@@ -1423,7 +1435,7 @@ Sonora supports optional YouTube Music sign-in so users can access personalized 
 ### 22.1 Session storage & service
 
 - **`YoutubeSessionStore`** ([youtube_session_store.dart](../lib/data/services/youtube_session_store.dart)): Persists filtered YouTube auth cookies and the cached `AccountInfo` card to `youtube_session.json` inside the application support directory (excluded from Settings backups).
-- **`YoutubeAccountService`** ([youtube_account_service.dart](../lib/data/services/youtube_account_service.dart)): Restores cookies into `YTMusic.cookieJar` at startup, applies new cookies via `applyAuthCookies` (forcing `SOCS=CAI`), reinitializes `YtmusicDatasource` with the active `gl`/`hl`, and clears `StreamDatasource` URL caches on sign-in or sign-out.
+- **`YoutubeAccountService`** ([youtube_account_service.dart](../lib/data/services/youtube_account_service.dart)): Restores cookies into `YTMusic.cookieJar` at startup, applies new cookies via `applyAuthCookies` (forcing `SOCS=CAI`), reinitializes `YtmusicDatasource` with the active `gl`/`hl`, and calls `streams.invalidatePoTokenSession()` on sign-in, sign-out, or remote `LOGIN_INFO` revocation (clearing the BotGuard minter, URL cache, and active `SabrProxySession`s).
 
 ### 22.2 Providers & Home reactivity
 

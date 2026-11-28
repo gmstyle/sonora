@@ -23,9 +23,10 @@ Headless command-line interface for Sonora — search, play, download, and manag
 
 ## Prerequisites
 
-- **Flutter SDK 3.44+** (includes Dart SDK) — required to resolve dependencies and generate Drift files
+- **Flutter SDK 3.47+** (includes Dart SDK) — required to resolve dependencies and generate Drift files
 - **git**
 - **Audio player** (optional, for `play`): `mpv`, `ffplay` (ffmpeg) or `vlc`
+- **Chromium / Chrome** (optional on Linux): used automatically when present in `PATH` for BotGuard PO token minting and `n`/`sig` challenge solving on authenticated sessions
 
 On Linux, install dependencies with:
 
