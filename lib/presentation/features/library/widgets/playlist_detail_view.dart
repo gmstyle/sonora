@@ -24,7 +24,6 @@ import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_badge.dart';
-import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../shared/widgets/detail_actions_bar.dart';
 import '../../../shared/widgets/detail_download_button.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
@@ -280,7 +279,7 @@ class _PlaylistDetailContentState
           if (!widget.isTablet && !widget.isWide)
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 0),
+                padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 0),
                 child: _LocalPlaylistActions(
                   playlist: freshPlaylist,
                   entryVideoIds: entries.map((e) => e.videoId).toList(),
@@ -663,41 +662,16 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final iconColor = Color.lerp(
-      Colors.white,
-      theme.colorScheme.onSurface,
-      scrollProgress,
-    );
-
-    return SliverAppBar(
+    return EntitySliverAppBar(
       expandedHeight: EntityBannerHeader.expandedHeight(
         wide: isWide,
         layout: isTablet || isWide
             ? EntityBannerLayout.cover
             : EntityBannerLayout.centered,
       ),
-      pinned: true,
-      iconTheme: IconThemeData(color: iconColor),
-      foregroundColor: iconColor,
-      title: AnimatedOpacity(
-        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
-        duration: const Duration(milliseconds: 150),
-        child: Text(
-          playlist.name,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: iconColor,
-          ),
-        ),
-      ),
-      flexibleSpace: Stack(
-        fit: StackFit.expand,
-        children: [
-          GlassAppBarBackground(opacity: scrollProgress),
-          FlexibleSpaceBar(background: _buildHeaderBackground(context)),
-        ],
-      ),
+      scrollProgress: scrollProgress,
+      collapsedTitle: Text(playlist.name),
+      background: _buildHeaderBackground(context),
     );
   }
 
@@ -725,7 +699,9 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
               Text(
                 l10n.playlistSyncSpotifyRateLimitHint,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.labelMuted,
+                  color: isTabletOrWide
+                      ? colors.labelMuted
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
                 textAlign: textAlign,
                 maxLines: isTabletOrWide ? 2 : 3,
@@ -743,7 +719,9 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                           : theme.textTheme.bodyMedium)
                       ?.copyWith(
                         fontWeight: isTabletOrWide ? FontWeight.w600 : null,
-                        color: colors.titleSecondary,
+                        color: isTabletOrWide
+                            ? colors.titleSecondary
+                            : theme.colorScheme.onSurface,
                       ),
               textAlign: textAlign,
               maxLines: 1,
@@ -760,7 +738,7 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                     ?.copyWith(
                       color: isTabletOrWide
                           ? colors.subtitle
-                          : colors.labelMuted,
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
             textAlign: textAlign,
           ),

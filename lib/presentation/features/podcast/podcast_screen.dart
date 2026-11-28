@@ -19,7 +19,6 @@ import '../../providers/play_podcast_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
-import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/entity_shimmer.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
@@ -232,6 +231,7 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final compactBody = !widget.isTablet && !widget.isWide;
 
     return Scaffold(
       body: CustomScrollView(
@@ -247,6 +247,7 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
           SliverPadding(
             padding: entityBodyPadding(
               widget.contentWidth,
+              top: compactBody ? 12 : 16,
               bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
@@ -254,8 +255,7 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!widget.isTablet && !widget.isWide)
-                    _PodcastActions(podcast: widget.podcast),
+                  if (compactBody) _PodcastActions(podcast: widget.podcast),
                   const SizedBox(height: 16),
                   EntityWideBody(
                     about:
@@ -307,46 +307,19 @@ class _PodcastSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final iconColor = Color.lerp(
-      Colors.white,
-      theme.colorScheme.onSurface,
-      scrollProgress,
-    );
-
     final thumbnailUrl = podcast.thumbnails.isNotEmpty
         ? podcast.thumbnails.last.url
         : null;
-    return SliverAppBar(
+    return EntitySliverAppBar(
       expandedHeight: EntityBannerHeader.expandedHeight(
         wide: isWide,
         layout: isTablet || isWide
             ? EntityBannerLayout.cover
             : EntityBannerLayout.centered,
       ),
-      pinned: true,
-      iconTheme: IconThemeData(color: iconColor),
-      foregroundColor: iconColor,
-      title: AnimatedOpacity(
-        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
-        duration: const Duration(milliseconds: 150),
-        child: Text(
-          podcast.name,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: iconColor,
-          ),
-        ),
-      ),
-      flexibleSpace: Stack(
-        fit: StackFit.expand,
-        children: [
-          GlassAppBarBackground(opacity: scrollProgress),
-          FlexibleSpaceBar(
-            background: _buildHeaderBackground(context, thumbnailUrl),
-          ),
-        ],
-      ),
+      scrollProgress: scrollProgress,
+      collapsedTitle: Text(podcast.name),
+      background: _buildHeaderBackground(context, thumbnailUrl),
     );
   }
 
@@ -378,7 +351,9 @@ class _PodcastSliverAppBar extends StatelessWidget {
                           : theme.textTheme.bodyMedium)
                       ?.copyWith(
                         fontWeight: isTabletOrWide ? FontWeight.w600 : null,
-                        color: colors.titleSecondary,
+                        color: isTabletOrWide
+                            ? colors.titleSecondary
+                            : theme.colorScheme.onSurface,
                       ),
               textAlign: textAlign,
             ),
@@ -393,7 +368,7 @@ class _PodcastSliverAppBar extends StatelessWidget {
                     ?.copyWith(
                       color: isTabletOrWide
                           ? colors.subtitle
-                          : colors.labelMuted,
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
             textAlign: textAlign,
           ),

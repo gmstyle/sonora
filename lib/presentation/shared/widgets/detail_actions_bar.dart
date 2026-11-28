@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/player_colors.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -50,7 +50,7 @@ class DetailAction {
   final String tooltip;
   final VoidCallback? onPressed;
 
-  /// Custom control. [compact] is true on the mobile icon row.
+  /// Custom control. [compact] is true when rendered as an icon-only control.
   final Widget Function(BuildContext context, bool compact)? buildControl;
 
   const DetailAction({
@@ -63,17 +63,11 @@ class DetailAction {
   });
 }
 
-/// Shared detail-header action chrome: Play + Shuffle + 2 secondary + More.
-///
-/// Fixed on all breakpoints (no per-width budget):
-/// - Compact (&lt;600): 2 secondary icons + shuffle + ⋮ + circular Play
-/// - Tablet / wide: Play + Shuffle + 2 secondary labeled + ⋮
-///
-/// Pass exactly the two in-bar secondaries via [secondary] (typically queue +
-/// save, or queue + download for local playlists). Overflow / extras open via
-/// [onOverflow] (usually [ContextMenuSheet] with [omitActionIds]).
+/// Shared detail-header action chrome:
+/// - Left: primary Play CTA + primary affinity action ([DetailActionId.save], if any).
+/// - Right: compact glass utility pill with Shuffle, remaining secondaries, and More.
 class DetailActionsBar extends StatelessWidget {
-  /// The two secondary actions after Play/Shuffle (queue + save, etc.).
+  /// Secondary actions (queue, save/follow, download, etc.).
   final List<DetailAction> secondary;
 
   final VoidCallback? onPlay;
@@ -105,6 +99,7 @@ class DetailActionsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isCompact = isCompactShell(MediaQuery.sizeOf(context));
 
     final visibleSecondary = secondary.take(kSecondaryBudget).toList();
@@ -115,6 +110,13 @@ class DetailActionsBar extends StatelessWidget {
     // keep Play + the secondary actions only.
     final showShuffle = onShuffle != null || shuffleLabel != null;
 
+    final primarySave = visibleSecondary
+        .where((a) => a.id == DetailActionId.save)
+        .toList();
+    final rightSecondary = visibleSecondary
+        .where((a) => a.id != DetailActionId.save)
+        .toList();
+
     void openOverflow() {
       if (onOverflow != null) {
         onOverflow!();
@@ -124,48 +126,62 @@ class DetailActionsBar extends StatelessWidget {
       _showOverflowSheet(context, overflowed);
     }
 
-    if (isCompact) {
-      return _MobileBar(
-        secondary: visibleSecondary,
-        showShuffle: showShuffle,
-        onShuffle: onShuffle,
-        onPlay: onPlay,
-        showMore: showMore,
-        onMore: showMore ? openOverflow : null,
-      );
-    }
-
-    final l10n = AppLocalizations.of(context);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            FilledButton.icon(
-              onPressed: onPlay,
-              icon: const Icon(LucideIcons.play),
-              label: Text(playLabel),
-            ),
-            if (showShuffle)
-              FilledButton.tonalIcon(
-                onPressed: onShuffle,
-                icon: const Icon(LucideIcons.shuffle),
-                label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
-              ),
-            for (final action in visibleSecondary)
-              _WideSecondary(action: action),
-            if (showMore)
-              IconButton(
-                icon: const Icon(LucideIcons.moreVertical),
-                tooltip: l10n?.more ?? 'More',
-                onPressed: openOverflow,
-              ),
-          ],
+    final rightControls = <Widget>[
+      if (showShuffle)
+        _CompactIconAction(
+          icon: LucideIcons.shuffle,
+          tooltip: shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle',
+          onPressed: onShuffle,
         ),
+      for (final action in rightSecondary) _UtilityAction(action: action),
+      if (showMore)
+        _CompactIconAction(
+          icon: LucideIcons.moreVertical,
+          tooltip: l10n?.more ?? 'More',
+          onPressed: openOverflow,
+        ),
+    ];
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 6 : 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: FilledButton.icon(
+                    onPressed: onPlay,
+                    style: isCompact
+                        ? FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                          )
+                        : null,
+                    icon: const Icon(LucideIcons.play, size: 18),
+                    label: Text(
+                      playLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                for (final action in primarySave) ...[
+                  SizedBox(width: isCompact ? 6 : 10),
+                  _PrimaryAffinityAction(action: action, compact: isCompact),
+                ],
+              ],
+            ),
+          ),
+          if (rightControls.isNotEmpty) ...[
+            const SizedBox(width: 12),
+            _UtilityPill(children: rightControls),
+          ],
+        ],
       ),
     );
   }
@@ -225,100 +241,115 @@ class DetailActionsBar extends StatelessWidget {
   }
 }
 
-class _MobileBar extends StatelessWidget {
-  final List<DetailAction> secondary;
-  final bool showShuffle;
-  final VoidCallback? onShuffle;
-  final VoidCallback? onPlay;
-  final bool showMore;
-  final VoidCallback? onMore;
+class _PrimaryAffinityAction extends StatelessWidget {
+  final DetailAction action;
+  final bool compact;
 
-  const _MobileBar({
-    required this.secondary,
-    required this.showShuffle,
-    required this.onShuffle,
-    required this.onPlay,
-    required this.showMore,
-    required this.onMore,
-  });
+  const _PrimaryAffinityAction({required this.action, required this.compact});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final action in secondary) _MobileSecondary(action: action),
-              if (showShuffle)
-                IconButton(
-                  icon: const Icon(LucideIcons.shuffle),
-                  onPressed: onShuffle,
-                  tooltip: l10n?.shuffle ?? 'Shuffle',
-                ),
-              if (showMore)
-                IconButton(
-                  icon: const Icon(LucideIcons.moreVertical),
-                  tooltip: l10n?.more ?? 'More',
-                  onPressed: onMore,
-                ),
+    final built = action.buildControl?.call(context, compact);
+    if (built != null) return built;
+    if (compact) {
+      return _CompactIconAction(
+        icon: action.icon,
+        tooltip: action.tooltip,
+        onPressed: action.onPressed,
+      );
+    }
+    return FilledButton.tonalIcon(
+      onPressed: action.onPressed,
+      icon: Icon(action.icon, size: 18),
+      label: Text(action.label),
+    );
+  }
+}
+
+class _UtilityPill extends StatelessWidget {
+  final List<Widget> children;
+
+  const _UtilityPill({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLowest.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusPill),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(width: 2),
+              children[i],
             ],
-          ),
-          SizedBox(
-            width: 56,
-            height: 56,
-            child: DecoratedBox(
-              decoration: brandPlayDecoration(context),
-              child: IconButton(
-                onPressed: onPlay,
-                style: IconButton.styleFrom(
-                  foregroundColor: brandGlyphOnFill(context),
-                  shape: const CircleBorder(),
-                ),
-                icon: const Icon(LucideIcons.play, size: 28),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _MobileSecondary extends StatelessWidget {
+class _UtilityAction extends StatelessWidget {
   final DetailAction action;
 
-  const _MobileSecondary({required this.action});
+  const _UtilityAction({required this.action});
 
   @override
   Widget build(BuildContext context) {
     final built = action.buildControl?.call(context, true);
-    if (built != null) return built;
-    return IconButton(
-      icon: Icon(action.icon),
-      onPressed: action.onPressed,
+    if (built != null) {
+      return IconButtonTheme(
+        data: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            minimumSize: const Size(36, 36),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        child: built,
+      );
+    }
+    return _CompactIconAction(
+      icon: action.icon,
       tooltip: action.tooltip,
+      onPressed: action.onPressed,
     );
   }
 }
 
-class _WideSecondary extends StatelessWidget {
-  final DetailAction action;
+class _CompactIconAction extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
 
-  const _WideSecondary({required this.action});
+  const _CompactIconAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final built = action.buildControl?.call(context, false);
-    if (built != null) return built;
-    return FilledButton.tonalIcon(
-      onPressed: action.onPressed,
-      icon: Icon(action.icon),
-      label: Text(action.label),
+    return IconButton(
+      icon: Icon(icon, size: 18),
+      onPressed: onPressed,
+      tooltip: tooltip,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      style: IconButton.styleFrom(
+        minimumSize: const Size(36, 36),
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 }

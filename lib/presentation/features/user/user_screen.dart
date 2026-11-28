@@ -10,7 +10,6 @@ import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
-import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/entity_wide_body.dart';
@@ -377,16 +376,10 @@ class _UserSliverAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final iconColor = Color.lerp(
-      Colors.white,
-      theme.colorScheme.onSurface,
-      scrollProgress,
-    );
     final thumbnailUrl = _userThumbnailUrl(user);
 
-    return SliverAppBar(
+    return EntitySliverAppBar(
       expandedHeight: EntityBannerHeader.expandedHeight(
         wide: isWide,
         hasActions: false,
@@ -394,20 +387,8 @@ class _UserSliverAppBar extends ConsumerWidget {
             ? EntityBannerLayout.cover
             : EntityBannerLayout.centered,
       ),
-      pinned: true,
-      iconTheme: IconThemeData(color: iconColor),
-      foregroundColor: iconColor,
-      title: AnimatedOpacity(
-        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
-        duration: const Duration(milliseconds: 150),
-        child: Text(
-          user.name,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: iconColor,
-          ),
-        ),
-      ),
+      scrollProgress: scrollProgress,
+      collapsedTitle: Text(user.name),
       actions: [
         IconButton(
           icon: const Icon(LucideIcons.share2),
@@ -423,15 +404,7 @@ class _UserSliverAppBar extends ConsumerWidget {
           },
         ),
       ],
-      flexibleSpace: Stack(
-        fit: StackFit.expand,
-        children: [
-          GlassAppBarBackground(opacity: scrollProgress),
-          FlexibleSpaceBar(
-            background: _buildHeaderBackground(context, thumbnailUrl),
-          ),
-        ],
-      ),
+      background: _buildHeaderBackground(context, thumbnailUrl),
     );
   }
 
@@ -458,7 +431,7 @@ class _UserSliverAppBar extends ConsumerWidget {
                         fontWeight: isTabletOrWide ? FontWeight.w600 : null,
                         color: isTabletOrWide
                             ? colors.titleSecondary
-                            : colors.labelMuted,
+                            : theme.colorScheme.onSurfaceVariant,
                       ),
               textAlign: isTabletOrWide ? TextAlign.start : TextAlign.center,
               maxLines: 1,

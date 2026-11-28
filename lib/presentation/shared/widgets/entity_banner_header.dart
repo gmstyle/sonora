@@ -9,9 +9,73 @@ import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../providers/palette_provider.dart';
 import 'entity_wide_body.dart';
 import 'explicit_badge.dart';
+import 'glass_app_bar_background.dart';
 
 /// Cover shape for [EntityBannerHeader] when the layout is not [EntityBannerLayout.photo].
 enum EntityBannerArtShape { circle, rounded }
+
+/// Shared pinned [SliverAppBar] chrome for entity pages.
+class EntitySliverAppBar extends StatelessWidget {
+  final double expandedHeight;
+  final double scrollProgress;
+  final Widget collapsedTitle;
+  final Widget background;
+  final List<Widget>? actions;
+
+  const EntitySliverAppBar({
+    super.key,
+    required this.expandedHeight,
+    required this.scrollProgress,
+    required this.collapsedTitle,
+    required this.background,
+    this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = Color.lerp(
+      Colors.white,
+      theme.colorScheme.onSurface,
+      scrollProgress,
+    );
+
+    return SliverAppBar(
+      expandedHeight: expandedHeight,
+      pinned: true,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      iconTheme: IconThemeData(color: iconColor),
+      foregroundColor: iconColor,
+      actions: actions,
+      title: AnimatedOpacity(
+        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
+        duration: const Duration(milliseconds: 150),
+        child: DefaultTextStyle.merge(
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: iconColor,
+          ),
+          child: collapsedTitle,
+        ),
+      ),
+      flexibleSpace: Stack(
+        fit: StackFit.expand,
+        children: [
+          GlassAppBarBackground(
+            opacity: scrollProgress > 0.6 ? (scrollProgress - 0.6) / 0.4 : 0.0,
+          ),
+          FlexibleSpaceBar(
+            collapseMode: CollapseMode.pin,
+            background: background,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Entity header banner.
 ///
@@ -78,8 +142,7 @@ class EntityBannerHeader extends ConsumerWidget {
     if (layout == EntityBannerLayout.centered) return 340;
     final actionBlock = hasActions ? 72.0 : 0.0;
     if (layout == EntityBannerLayout.photo) {
-      final photo = wide ? 248.0 : 200.0;
-      return kToolbarHeight + photo + actionBlock;
+      return kToolbarHeight + (wide ? 224.0 : 180.0);
     }
     final art = wide ? 180.0 : 148.0;
     return kToolbarHeight + 20 + art + actionBlock + 12;
@@ -119,7 +182,7 @@ class EntityBannerHeader extends ConsumerWidget {
                 children: [
                   _artwork(theme),
                   const SizedBox(height: 14),
-                  _centeredCopy(theme, colors),
+                  _centeredCopy(theme),
                 ],
               ),
             ),
@@ -128,18 +191,23 @@ class EntityBannerHeader extends ConsumerWidget {
       );
     }
 
+    if (layout == EntityBannerLayout.photo) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Opacity(opacity: fade, child: _photoWash(theme)),
+          const _EntityBannerScrim(),
+        ],
+      );
+    }
+
     final top = MediaQuery.paddingOf(context).top + kToolbarHeight + 12;
-    final field = layout == EntityBannerLayout.cover
-        ? _fieldColor(context, ref, theme)
-        : null;
+    final field = _fieldColor(context, ref, theme);
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (layout == EntityBannerLayout.photo)
-          _photoWash(theme)
-        else
-          _colorField(theme, field!),
+        _colorField(field),
         const _EntityBannerScrim(),
         Positioned(
           top: top,
@@ -150,7 +218,12 @@ class EntityBannerHeader extends ConsumerWidget {
             opacity: fade,
             child: Column(
               children: [
-                Expanded(child: _body(theme, colors)),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: actions != null ? 12 : 0),
+                    child: _body(theme, colors),
+                  ),
+                ),
                 ?actions,
               ],
             ),
@@ -163,13 +236,14 @@ class EntityBannerHeader extends ConsumerWidget {
   Widget _centeredWash(ThemeData theme) {
     final backdrop = background;
     final url = imageUrl;
+    final surface = theme.colorScheme.surface;
     final Widget washChild;
     if (backdrop != null) {
       washChild = backdrop;
     } else if (url != null && url.isNotEmpty) {
       washChild = CachedNetworkImage(imageUrl: url, fit: BoxFit.cover);
     } else {
-      return ColoredBox(color: theme.colorScheme.surfaceContainerHighest);
+      return ColoredBox(color: surface);
     }
 
     return Stack(
@@ -187,8 +261,8 @@ class EntityBannerHeader extends ConsumerWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withValues(alpha: 0.45),
-                theme.colorScheme.surface.withValues(alpha: 0.95),
+                surface.withValues(alpha: 0.55),
+                surface.withValues(alpha: 0.88),
               ],
             ),
           ),
@@ -230,77 +304,34 @@ class EntityBannerHeader extends ConsumerWidget {
   }
 
   Widget _photoWash(ThemeData theme) {
-    final image = imageUrl == null || imageUrl!.isEmpty
-        ? ColoredBox(color: theme.colorScheme.surfaceContainer)
-        : CachedNetworkImage(
-            imageUrl: imageUrl!,
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-          );
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        image,
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.18),
-                Colors.black.withValues(alpha: 0.04),
-                Colors.black.withValues(alpha: 0.55),
-                theme.colorScheme.surface,
-              ],
-              stops: const [0.0, 0.42, 0.78, 1.0],
-            ),
-          ),
-        ),
-      ],
+    if (imageUrl == null || imageUrl!.isEmpty) {
+      return ColoredBox(color: theme.colorScheme.surfaceContainer);
+    }
+    return CachedNetworkImage(
+      imageUrl: imageUrl!,
+      fit: BoxFit.cover,
+      alignment: const Alignment(0, -0.2),
     );
   }
 
-  Widget _colorField(ThemeData theme, Color field) {
+  Widget _colorField(Color field) {
     final deep = HSLColor.fromColor(field)
         .withLightness(
           (HSLColor.fromColor(field).lightness * 0.62).clamp(0.10, 0.24),
         )
         .toColor();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [field, deep],
-            ),
-          ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [field, deep],
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 56,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  theme.colorScheme.surface.withValues(alpha: 0),
-                  theme.colorScheme.surface,
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _centeredCopy(ThemeData theme, PlayerColors colors) {
+  Widget _centeredCopy(ThemeData theme) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -321,7 +352,7 @@ class EntityBannerHeader extends ConsumerWidget {
           ),
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: colors.titlePrimary,
+            color: theme.colorScheme.onSurface,
           ),
           textAlign: TextAlign.center,
           maxLines: 1,
@@ -333,18 +364,24 @@ class EntityBannerHeader extends ConsumerWidget {
   }
 
   Widget _copy(ThemeData theme, PlayerColors colors) {
+    final textShadows = [
+      Shadow(
+        color: theme.colorScheme.scrim.withValues(alpha: 0.55),
+        blurRadius: 10,
+        offset: const Offset(0, 1),
+      ),
+    ];
     final titleStyle =
         (wide ? theme.textTheme.displayMedium : theme.textTheme.displaySmall)
             ?.copyWith(
               fontWeight: FontWeight.w700,
               color: colors.titlePrimary,
               height: 1.02,
+              shadows: textShadows,
             );
 
     return Column(
-      mainAxisAlignment: layout == EntityBannerLayout.photo
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (eyebrow != null) ...[
@@ -353,6 +390,7 @@ class EntityBannerHeader extends ConsumerWidget {
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: colors.titleSecondary,
+              shadows: textShadows,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

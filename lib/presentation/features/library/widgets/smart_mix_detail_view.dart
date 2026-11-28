@@ -204,8 +204,13 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                     flexibleSpace: Stack(
                       fit: StackFit.expand,
                       children: [
-                        GlassAppBarBackground(opacity: _scrollProgress),
+                        GlassAppBarBackground(
+                          opacity: _scrollProgress > 0.6
+                              ? (_scrollProgress - 0.6) / 0.4
+                              : 0.0,
+                        ),
                         FlexibleSpaceBar(
+                          collapseMode: CollapseMode.pin,
                           centerTitle: true,
                           title: _scrollProgress > 0.6
                               ? Text(

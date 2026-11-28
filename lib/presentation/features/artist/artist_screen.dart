@@ -12,7 +12,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/stat_format.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../core/utils/layout_breakpoints.dart';
-import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -34,7 +33,6 @@ import 'discography_kind.dart';
 import 'latest_release.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
-import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
@@ -254,6 +252,18 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
       return artist.similarArtists.where((a) => seen.add(a.artistId)).toList();
     }();
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final titleStyle =
+        (widget.isWide
+                ? theme.textTheme.displayMedium
+                : theme.textTheme.displaySmall)
+            ?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+              height: 1.02,
+            );
+
     return Scaffold(
       body: CustomScrollView(
         controller: _scrollController,
@@ -264,13 +274,11 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
             isWide: widget.isWide,
             contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
-            actions: widget.isTablet || widget.isWide
-                ? _ArtistActions(artist: artist)
-                : null,
           ),
           SliverPadding(
             padding: entityBodyPadding(
               widget.contentWidth,
+              top: 24,
               bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
@@ -278,8 +286,20 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!widget.isTablet && !widget.isWide)
-                    _ArtistActions(artist: artist),
+                  Text(
+                    artist.name,
+                    style: titleStyle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  _ArtistStatRow(
+                    artist: artist,
+                    valueColor: scheme.onSurface,
+                    labelColor: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 14),
+                  _ArtistActions(artist: artist),
                   if (artist.description != null &&
                       artist.description!.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -627,7 +647,6 @@ class _ArtistSliverAppBar extends StatelessWidget {
   final bool isWide;
   final double contentWidth;
   final double scrollProgress;
-  final Widget? actions;
 
   const _ArtistSliverAppBar({
     required this.artist,
@@ -635,70 +654,30 @@ class _ArtistSliverAppBar extends StatelessWidget {
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
-    this.actions,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final iconColor = Color.lerp(
-      Colors.white,
-      theme.colorScheme.onSurface,
-      scrollProgress,
-    );
-
     final thumbnailUrl = artist.thumbnails.isNotEmpty
         ? artist.thumbnails.last.url
         : null;
 
-    return SliverAppBar(
+    return EntitySliverAppBar(
       expandedHeight: _artistHeaderHeight(
         tall: isTablet || isWide,
         wide: isWide,
       ),
-      pinned: true,
-      iconTheme: IconThemeData(color: iconColor),
-      foregroundColor: iconColor,
-      title: AnimatedOpacity(
-        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
-        duration: const Duration(milliseconds: 150),
-        child: Text(
-          artist.name,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: iconColor,
-          ),
-        ),
-      ),
-      flexibleSpace: Stack(
-        fit: StackFit.expand,
-        children: [
-          GlassAppBarBackground(opacity: scrollProgress),
-          FlexibleSpaceBar(
-            background: _buildHeaderBackground(context, thumbnailUrl),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
-    final colors = PlayerColors.of(context);
-
-    return EntityBannerHeader(
-      layout: EntityBannerLayout.photo,
-      title: artist.name,
-      meta: _ArtistStatRow(
-        artist: artist,
-        valueColor: colors.titleSecondary,
-        labelColor: colors.labelMuted,
-      ),
-      imageUrl: thumbnailUrl,
-      placeholderIcon: LucideIcons.user,
       scrollProgress: scrollProgress,
-      wide: isWide,
-      contentWidth: contentWidth,
-      actions: actions,
+      collapsedTitle: Text(artist.name),
+      background: EntityBannerHeader(
+        layout: EntityBannerLayout.photo,
+        title: artist.name,
+        imageUrl: thumbnailUrl,
+        placeholderIcon: LucideIcons.user,
+        scrollProgress: scrollProgress,
+        wide: isWide,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }

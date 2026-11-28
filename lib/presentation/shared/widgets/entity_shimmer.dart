@@ -46,7 +46,11 @@ class EntityShimmer extends StatelessWidget {
       _ when compact => EntityBannerLayout.centered,
       _ => EntityBannerLayout.cover,
     };
-    final actionsInHeader = kind != EntityShimmerKind.profile && !compact;
+    final isArtist = kind == EntityShimmerKind.artist;
+    final actionsInHeader =
+        kind != EntityShimmerKind.profile && !compact && !isArtist;
+    final actionsInBody =
+        kind != EntityShimmerKind.profile && (compact || isArtist);
     final showShuffle = kind != EntityShimmerKind.episode;
     final pad = entityHorizontalPadding(
       contentWidth,
@@ -78,14 +82,18 @@ class EntityShimmer extends StatelessWidget {
           SliverPadding(
             padding: entityBodyPadding(
               contentWidth,
+              top: isArtist ? 0 : 16,
               bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: size.shortestSide,
             ),
             sliver: SliverToBoxAdapter(
               child: _Body(
                 kind: kind,
-                actions: kind != EntityShimmerKind.profile && compact
-                    ? _ActionsSkeleton(compact: true, showShuffle: showShuffle)
+                actions: actionsInBody
+                    ? _ActionsSkeleton(
+                        compact: compact,
+                        showShuffle: showShuffle,
+                      )
                     : null,
               ),
             ),
@@ -162,36 +170,11 @@ class _Header extends StatelessWidget {
   }
 
   Widget _photo() {
-    return Column(
-      children: [
-        const Expanded(
-          child: SizedBox(
-            key: Key('entity-shimmer-art'),
-            width: double.infinity,
-            child: ColoredBox(color: Colors.white),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(pad, 12, pad, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _Bar(width: 180, height: 22),
-              const SizedBox(height: 8),
-              const Row(
-                children: [
-                  _Bar(width: 56, height: 12),
-                  SizedBox(width: 16),
-                  _Bar(width: 56, height: 12),
-                  SizedBox(width: 16),
-                  _Bar(width: 56, height: 12),
-                ],
-              ),
-              if (actions != null) ...[const SizedBox(height: 12), actions!],
-            ],
-          ),
-        ),
-      ],
+    return const SizedBox(
+      key: Key('entity-shimmer-art'),
+      width: double.infinity,
+      height: double.infinity,
+      child: ColoredBox(color: Colors.white),
     );
   }
 }
@@ -207,7 +190,23 @@ class _Body extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (kind == EntityShimmerKind.artist) ...[
+          const _Bar(width: 180, height: 26),
+          const SizedBox(height: 10),
+          const Row(
+            children: [
+              _Bar(width: 56, height: 12),
+              SizedBox(width: 16),
+              _Bar(width: 56, height: 12),
+              SizedBox(width: 16),
+              _Bar(width: 56, height: 12),
+            ],
+          ),
+          const SizedBox(height: 14),
+        ],
         ?actions,
+        if (kind == EntityShimmerKind.artist && actions != null)
+          const SizedBox(height: 20),
         switch (kind) {
           EntityShimmerKind.tracks => _tracks(8),
           EntityShimmerKind.episode => const _Notes(),
@@ -259,34 +258,32 @@ class _ActionsSkeleton extends StatelessWidget {
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              const _Disc(size: 40),
-              const _Disc(size: 40),
-              if (showShuffle) const _Disc(size: 40),
-              const _Disc(size: 40),
+            children: const [
+              _Pill(width: 112),
+              SizedBox(width: 6),
+              _Disc(size: 38),
             ],
           ),
-          const _Disc(size: 56),
+          _UtilityPillSkeleton(count: showShuffle ? 3 : 2),
         ],
       ),
     );
   }
 
   Widget _wide() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          const _Pill(width: 96),
-          if (showShuffle) const _Pill(width: 120),
-          const _Pill(width: 96),
-          const _Pill(width: 96),
-          const _Disc(size: 40),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            _Pill(width: 128),
+            SizedBox(width: 10),
+            _Pill(width: 96),
+          ],
+        ),
+        _UtilityPillSkeleton(count: showShuffle ? 3 : 2),
+      ],
     );
   }
 }
@@ -514,6 +511,34 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusPill),
+      ),
+    );
+  }
+}
+
+class _UtilityPillSkeleton extends StatelessWidget {
+  final int count;
+
+  const _UtilityPillSkeleton({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusPill),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < count; i++) ...[
+              if (i > 0) const SizedBox(width: 6),
+              const _Disc(size: 32),
+            ],
+          ],
+        ),
       ),
     );
   }

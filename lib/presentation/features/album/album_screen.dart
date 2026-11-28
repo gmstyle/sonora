@@ -25,7 +25,6 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/explicit_badge.dart';
-import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/header_credit_line.dart';
@@ -246,13 +245,6 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final iconColor = Color.lerp(
-      Colors.white,
-      theme.colorScheme.onSurface,
-      _scrollProgress,
-    );
-
     final thumbnailUrl = widget.album.thumbnails.isNotEmpty
         ? widget.album.thumbnails.last.url
         : null;
@@ -268,63 +260,46 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
           .toList();
     }();
 
+    final isTabletOrWide = widget.isTablet || widget.isWide;
+
     return Scaffold(
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          SliverAppBar(
+          EntitySliverAppBar(
             expandedHeight: EntityBannerHeader.expandedHeight(
               wide: widget.isWide,
-              layout: widget.isTablet || widget.isWide
+              layout: isTabletOrWide
                   ? EntityBannerLayout.cover
                   : EntityBannerLayout.centered,
             ),
-            pinned: true,
-            iconTheme: IconThemeData(color: iconColor),
-            foregroundColor: iconColor,
-            title: AnimatedOpacity(
-              opacity: _scrollProgress > 0.8
-                  ? (_scrollProgress - 0.8) / 0.2
-                  : 0.0,
-              duration: const Duration(milliseconds: 150),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    if (widget.album.isExplicit)
-                      const WidgetSpan(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: 6.0),
-                          child: ExplicitBadge(),
-                        ),
-                        alignment: PlaceholderAlignment.middle,
+            scrollProgress: _scrollProgress,
+            collapsedTitle: Text.rich(
+              TextSpan(
+                children: [
+                  if (widget.album.isExplicit)
+                    const WidgetSpan(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 6.0),
+                        child: ExplicitBadge(),
                       ),
-                    TextSpan(text: widget.album.name),
-                  ],
-                ),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: iconColor,
-                ),
+                      alignment: PlaceholderAlignment.middle,
+                    ),
+                  TextSpan(text: widget.album.name),
+                ],
               ),
             ),
-            flexibleSpace: Stack(
-              fit: StackFit.expand,
-              children: [
-                GlassAppBarBackground(opacity: _scrollProgress),
-                FlexibleSpaceBar(
-                  background: _buildHeaderBackground(
-                    context,
-                    thumbnailUrl,
-                    totalDuration,
-                    unavailableCount,
-                  ),
-                ),
-              ],
+            background: _buildHeaderBackground(
+              context,
+              thumbnailUrl,
+              totalDuration,
+              unavailableCount,
             ),
           ),
           SliverPadding(
             padding: entityBodyPadding(
               widget.contentWidth,
+              top: !isTabletOrWide ? 12 : 16,
               bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
@@ -481,7 +456,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         : theme.textTheme.bodyMedium)
                     ?.copyWith(
                       fontWeight: isTabletOrWide ? FontWeight.w600 : null,
-                      color: colors.titleSecondary,
+                      color: isTabletOrWide
+                          ? colors.titleSecondary
+                          : theme.colorScheme.onSurface,
                     ),
             textAlign: textAlign,
           ),
@@ -501,7 +478,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     ?.copyWith(
                       color: isTabletOrWide
                           ? colors.subtitle
-                          : colors.labelMuted,
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
             textAlign: textAlign,
             maxLines: 2,
