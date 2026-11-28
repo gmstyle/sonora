@@ -182,7 +182,11 @@ class ContextMenuSheet {
     required VoidCallback onUpdated,
     bool hideGoToPlaylist = false,
     Set<String> omitActionIds = const {},
+    VoidCallback? onDeleted,
   }) {
+    final detailNavigator = hideGoToPlaylist
+        ? Navigator.maybeOf(context)
+        : null;
     return presentContextMenu(
       context,
       CustomPlaylistContextMenuSheet(
@@ -190,6 +194,8 @@ class ContextMenuSheet {
         onUpdated: onUpdated,
         hideGoToPlaylist: hideGoToPlaylist,
         omitActionIds: omitActionIds,
+        detailNavigator: detailNavigator,
+        onDeleted: onDeleted,
       ),
     );
   }

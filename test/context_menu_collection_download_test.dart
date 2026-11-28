@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/domain/models/library_models.dart';
+import 'package:sonora/domain/repositories/library_repository.dart';
 import 'package:sonora/domain/repositories/music_repository.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/album/providers/album_provider.dart';
@@ -14,10 +15,27 @@ import 'package:sonora/presentation/providers/action_feedback_provider.dart';
 import 'package:sonora/presentation/providers/connectivity_provider.dart';
 import 'package:sonora/presentation/providers/download_provider.dart';
 import 'package:sonora/presentation/providers/library_notifier.dart';
+import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/music_repository_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/shared/widgets/context_menu_sheet.dart';
 import 'package:sonora/presentation/shared/widgets/detail_actions_bar.dart';
+
+class _RecordingLibraryRepository extends Fake implements LibraryRepository {
+  final deletedIds = <int>[];
+
+  @override
+  Future<void> deletePlaylist(int id) async {
+    deletedIds.add(id);
+  }
+
+  @override
+  Future<List<LocalPlaylistModel>> getAllPlaylists() async => const [];
+
+  @override
+  Stream<List<LocalPlaylistModel>> watchAllPlaylists() =>
+      Stream.value(const []);
+}
 
 class _FakePlayer extends PlayerNotifier {
   @override
@@ -375,6 +393,86 @@ void main() {
         activeDownloadsProvider.notifier,
       ) as _RecordingDownloads;
       expect(downloads.started, ['vid1']);
+    },
+  );
+
+  testWidgets(
+    'deleting a custom playlist from detail pops its nested branch navigator',
+    (tester) async {
+      final repo = _RecordingLibraryRepository();
+      final playlist = LocalPlaylistModel(
+        id: 42,
+        name: 'Road Trip',
+        createdAt: DateTime(2026, 11, 28),
+      );
+      var updatedCount = 0;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            isOfflineProvider.overrideWithValue(false),
+            libraryRepositoryProvider.overrideWithValue(repo),
+            playerStateProvider.overrideWith(_FakePlayer.new),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              // Nested Navigator mimics a StatefulShellRoute tab branch.
+              body: Navigator(
+                onGenerateRoute: (_) => MaterialPageRoute<void>(
+                  builder: (branchContext) => Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(branchContext).push(
+                          MaterialPageRoute<void>(
+                            builder: (detailContext) => Scaffold(
+                              body: Center(
+                                child: TextButton(
+                                  onPressed: () =>
+                                      ContextMenuSheet.showForCustomPlaylist(
+                                        detailContext,
+                                        playlist: playlist,
+                                        hideGoToPlaylist: true,
+                                        onUpdated: () => updatedCount++,
+                                      ),
+                                  child: const Text('Detail Page'),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Library Root'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Library Root'));
+      await tester.pumpAndSettle();
+      expect(find.text('Detail Page'), findsOneWidget);
+
+      await tester.tap(find.text('Detail Page'));
+      await tester.pumpAndSettle();
+
+      await tapMenuLabel(tester, 'Delete playlist');
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(repo.deletedIds, [42]);
+      expect(updatedCount, 1);
+      expect(find.text('Detail Page'), findsNothing);
+      expect(find.text('Library Root'), findsOneWidget);
     },
   );
 }

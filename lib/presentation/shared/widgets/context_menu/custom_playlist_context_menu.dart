@@ -28,6 +28,8 @@ class CustomPlaylistContextMenuSheet extends ConsumerWidget {
   final VoidCallback onUpdated;
   final bool hideGoToPlaylist;
   final Set<String> omitActionIds;
+  final NavigatorState? detailNavigator;
+  final VoidCallback? onDeleted;
 
   const CustomPlaylistContextMenuSheet({
     super.key,
@@ -35,6 +37,8 @@ class CustomPlaylistContextMenuSheet extends ConsumerWidget {
     required this.onUpdated,
     this.hideGoToPlaylist = false,
     this.omitActionIds = const {},
+    this.detailNavigator,
+    this.onDeleted,
   });
 
   @override
@@ -241,23 +245,29 @@ class CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       );
                       if (confirm == true) {
                         if (!context.mounted) return;
-                        final notifier = ref.read(
+                        final container = ProviderScope.containerOf(context);
+                        final notifier = container.read(
                           libraryNotifierProvider.notifier,
                         );
-                        // Detail page passes hideGoToPlaylist: leave after delete.
-                        final leaveDetail = hideGoToPlaylist;
-                        final nav = leaveDetail
-                            ? Navigator.of(context, rootNavigator: true)
-                            : null;
+                        final nav =
+                            detailNavigator ??
+                            (hideGoToPlaylist
+                                ? Navigator.maybeOf(
+                                    context,
+                                    rootNavigator: true,
+                                  )
+                                : null);
                         Navigator.pop(context);
-                        await notifier.deletePlaylist(playlist.id);
-                        ref.invalidate(playlistsProvider);
-                        ref.invalidate(homeCombinedPlaylistsProvider);
-                        ref.invalidate(homeRandomPlaylistsProvider);
-                        onUpdated();
-                        if (leaveDetail && nav != null && nav.canPop()) {
+                        if (onDeleted != null) {
+                          onDeleted!();
+                        } else if (nav != null && nav.canPop()) {
                           nav.pop();
                         }
+                        await notifier.deletePlaylist(playlist.id);
+                        container.invalidate(playlistsProvider);
+                        container.invalidate(homeCombinedPlaylistsProvider);
+                        container.invalidate(homeRandomPlaylistsProvider);
+                        onUpdated();
                       }
                     },
                   ),
