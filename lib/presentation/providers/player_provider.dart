@@ -114,6 +114,8 @@ class PlayerState {
   final Duration duration;
   final AudioServiceShuffleMode shuffleMode;
   final AudioServiceRepeatMode repeatMode;
+  final double volume;
+  final bool isMuted;
   final Duration? sleepTimerRemaining;
 
   /// When true, playback pauses when the current track finishes naturally.
@@ -152,6 +154,8 @@ class PlayerState {
     this.duration = Duration.zero,
     this.shuffleMode = AudioServiceShuffleMode.none,
     this.repeatMode = AudioServiceRepeatMode.none,
+    this.volume = 1.0,
+    this.isMuted = false,
     this.sleepTimerRemaining,
     this.sleepUntilEndOfTrack = false,
     this.userQueue = const [],
@@ -200,6 +204,8 @@ class PlayerState {
     Duration? duration,
     AudioServiceShuffleMode? shuffleMode,
     AudioServiceRepeatMode? repeatMode,
+    double? volume,
+    bool? isMuted,
     Duration? sleepTimerRemaining,
     bool? sleepUntilEndOfTrack,
     List<MediaItem>? userQueue,
@@ -229,6 +235,8 @@ class PlayerState {
       duration: duration ?? this.duration,
       shuffleMode: shuffleMode ?? this.shuffleMode,
       repeatMode: repeatMode ?? this.repeatMode,
+      volume: volume ?? this.volume,
+      isMuted: isMuted ?? this.isMuted,
       sleepTimerRemaining: clearSleepTimer
           ? null
           : (sleepTimerRemaining ?? this.sleepTimerRemaining),
@@ -250,6 +258,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   StreamSubscription? _queueSub;
   StreamSubscription? _durationSub;
   StreamSubscription? _positionSub;
+  StreamSubscription? _volumeSub;
   StreamSubscription? _playErrorSub;
   StreamSubscription? _restoreStatusSub;
   bool _isFetchingUpNext = false;
@@ -309,7 +318,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   PlayerState build() {
     WidgetsBinding.instance.addObserver(this);
 
-    var initialState = const PlayerState();
+    var initialState = PlayerState(
+      volume: _handler.userVolume,
+      isMuted: _handler.isMuted,
+    );
 
     // Seed initial state from handler synchronously to ensure it is fully
     // populated before any widgets or listeners read it.
@@ -372,6 +384,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _queueSub?.cancel();
       _durationSub?.cancel();
       _positionSub?.cancel();
+      _volumeSub?.cancel();
       _playErrorSub?.cancel();
       _restoreStatusSub?.cancel();
       _sleepTimer?.cancel();
@@ -570,6 +583,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
       _durationSub = _handler.durationStream.listen((d) {
         state = state.copyWith(duration: d);
+      });
+
+      _volumeSub = _handler.volumeStream.listen((v) {
+        state = state.copyWith(volume: v.volume, isMuted: v.muted);
       });
 
       _playErrorSub = _handler.onPlayError.listen((error) {
@@ -1231,6 +1248,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final next = modes[(idx + 1) % modes.length];
     await _handler.setRepeatMode(next);
   }
+
+  void setVolume(double volume) => _handler.setUserVolume(volume);
+
+  void setMuted(bool muted) => _handler.setMuted(muted);
+
+  void toggleMute() => _handler.toggleMute();
+
+  Future<void> toggleCurrentLike() => _handler.toggleCurrentLike();
 
   void setSleepTimer(Duration duration) {
     _sleepTimer?.cancel();

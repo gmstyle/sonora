@@ -11,6 +11,46 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../presentation/features/player/audio_handler.dart';
 import 'linux_single_instance.dart';
+import 'linux_tray_models.dart';
+
+/// Callbacks wired by the mounted Flutter tree to handle tray menu actions.
+class LinuxTrayCallbacks {
+  final Future<void> Function()? onOpenNowPlaying;
+  final Future<void> Function()? onPlayPause;
+  final Future<void> Function()? onPrevious;
+  final Future<void> Function()? onNext;
+  final Future<void> Function()? onToggleLike;
+  final Future<void> Function()? onToggleShuffle;
+  final Future<void> Function(AudioServiceRepeatMode mode)? onSetRepeatMode;
+  final Future<void> Function(int index)? onSkipToQueueIndex;
+  final void Function(int? minutes)? onSetSleepMinutes;
+  final void Function()? onSetSleepEndOfTrack;
+  final void Function()? onToggleMute;
+  final void Function(int percent)? onSetVolumePercent;
+  final Future<void> Function()? onToggleOffline;
+  final Future<void> Function(String route)? onNavigate;
+  final Future<void> Function()? onResumeLast;
+  final Future<void> Function()? onShuffleLiked;
+
+  const LinuxTrayCallbacks({
+    this.onOpenNowPlaying,
+    this.onPlayPause,
+    this.onPrevious,
+    this.onNext,
+    this.onToggleLike,
+    this.onToggleShuffle,
+    this.onSetRepeatMode,
+    this.onSkipToQueueIndex,
+    this.onSetSleepMinutes,
+    this.onSetSleepEndOfTrack,
+    this.onToggleMute,
+    this.onSetVolumePercent,
+    this.onToggleOffline,
+    this.onNavigate,
+    this.onResumeLast,
+    this.onShuffleLiked,
+  });
+}
 
 class LinuxTrayService {
   static LinuxTrayService? _instance;
@@ -40,6 +80,7 @@ class LinuxTrayService {
     if (window == null) return;
     window.show();
     window.focus();
+    _instance?.setWindowVisible(true);
     if (window.isMaximized) {
       Timer(const Duration(milliseconds: 50), () {
         SchedulerBinding.instance.scheduleForcedFrame();
@@ -56,6 +97,14 @@ class LinuxTrayService {
     });
   }
 
+  /// Hides the window to the Linux tray and updates the tray menu toggle.
+  static void hideWindow() {
+    final window = WindowManager.instance.getCurrent();
+    if (window == null) return;
+    window.hide();
+    _instance?.setWindowVisible(false);
+  }
+
   static void setInstance(LinuxTrayService service) {
     _instance = service;
   }
@@ -66,11 +115,9 @@ class LinuxTrayService {
 
   static LinuxTrayService? get instance => _instance;
 
-  bool _isPlaying = false;
-  String? _currentTitle;
-  String? _currentArtist;
-  AudioServiceShuffleMode _shuffleMode = AudioServiceShuffleMode.none;
-  AudioServiceRepeatMode _repeatMode = AudioServiceRepeatMode.none;
+  LinuxTraySnapshot _snapshot = const LinuxTraySnapshot();
+  LinuxTrayLabels _labels = LinuxTrayLabels.fallbackEn;
+  LinuxTrayCallbacks _callbacks = const LinuxTrayCallbacks();
 
   TrayIcon? _icon;
   Menu? _menu;
@@ -100,7 +147,7 @@ class LinuxTrayService {
     icon.addListener((event) {
       if (event is TrayIconClickedEvent) _showWindow();
     });
-    _updateMenu();
+    _rebuildMenu();
     icon.setVisible(true);
   }
 
@@ -118,6 +165,28 @@ class LinuxTrayService {
     return p.join(p.dirname(Platform.resolvedExecutable), 'tray_icon.png');
   }
 
+  /// Binds UI-layer callbacks (PlayerNotifier, SettingsNotifier, GoRouter, etc.).
+  void setCallbacks(LinuxTrayCallbacks callbacks) {
+    _callbacks = callbacks;
+  }
+
+  /// Updates the tray menu and tooltip if [snapshot] or [labels] changed.
+  void updateSnapshot(LinuxTraySnapshot snapshot, LinuxTrayLabels labels) {
+    if (snapshot == _snapshot && labels == _labels) return;
+    _snapshot = snapshot;
+    _labels = labels;
+    _rebuildMenu();
+    _icon?.setTooltip(buildLinuxTrayTooltip(_snapshot, _labels));
+  }
+
+  /// Updates whether the main window is currently visible.
+  void setWindowVisible(bool visible) {
+    if (_snapshot.isWindowVisible == visible) return;
+    _snapshot = _snapshot.copyWith(isWindowVisible: visible);
+    _rebuildMenu();
+  }
+
+  /// Legacy convenience update for callers that only track basic playback state.
   Future<void> updatePlaybackState(
     bool isPlaying, {
     String? title,
@@ -125,21 +194,19 @@ class LinuxTrayService {
     AudioServiceShuffleMode? shuffleMode,
     AudioServiceRepeatMode? repeatMode,
   }) async {
-    _isPlaying = isPlaying;
-    _currentTitle = title;
-    _currentArtist = artist;
-    if (shuffleMode != null) _shuffleMode = shuffleMode;
-    if (repeatMode != null) _repeatMode = repeatMode;
-
-    _updateMenu();
-
-    final tooltip = (title != null && artist != null)
-        ? '$artist - $title'
-        : 'Sonora';
-    _icon?.setTooltip(tooltip);
+    final next = _snapshot.copyWith(
+      isPlaying: isPlaying,
+      title: title,
+      artist: artist,
+      clearTrack: title == null,
+      shuffleMode: shuffleMode,
+      repeatMode: repeatMode,
+      hasQueue: title != null || _snapshot.hasQueue,
+    );
+    updateSnapshot(next, _labels);
   }
 
-  void _updateMenu() {
+  void _rebuildMenu() {
     final icon = _icon;
     if (icon == null) return;
 
@@ -149,43 +216,8 @@ class LinuxTrayService {
       return;
     }
 
-    if (_currentTitle != null) {
-      _addItem(menu, 'Now Playing:', enabled: false);
-      _addItem(menu, '  $_currentTitle', enabled: false);
-      if (_currentArtist != null) {
-        _addItem(menu, '  by $_currentArtist', enabled: false);
-      }
-      menu.addSeparator();
-    }
-
-    _addItem(
-      menu,
-      _isPlaying ? '⏸  Pause' : '▶  Play',
-      onClick: _sendPlayPauseAction,
-    );
-    _addItem(menu, '⏮  Previous', onClick: _sendPreviousAction);
-    _addItem(menu, '⏭  Next', onClick: _sendNextAction);
-
-    menu.addSeparator();
-
-    final isShuffle = _shuffleMode == AudioServiceShuffleMode.all;
-    _addItem(
-      menu,
-      isShuffle ? '🔀  Shuffle: On' : '🔀  Shuffle: Off',
-      onClick: _toggleShuffle,
-    );
-
-    final repeatLabel = switch (_repeatMode) {
-      AudioServiceRepeatMode.one => '🔂  Repeat: One',
-      AudioServiceRepeatMode.all => '🔁  Repeat: All',
-      _ => '🔁  Repeat: Off',
-    };
-    _addItem(menu, repeatLabel, onClick: _cycleRepeatMode);
-
-    menu.addSeparator();
-
-    _addItem(menu, 'Restore Sonora', onClick: () async => _showWindow());
-    _addItem(menu, 'Quit', onClick: _quit);
+    final spec = buildLinuxTrayMenuSpec(_snapshot, _labels);
+    _populateMenu(menu, spec);
 
     icon.setContextMenu(menu);
     final previous = _menu;
@@ -193,21 +225,172 @@ class LinuxTrayService {
     previous?.dispose();
   }
 
-  void _addItem(
-    Menu menu,
-    String label, {
-    bool enabled = true,
-    Future<void> Function()? onClick,
-  }) {
-    final item = MenuItem.createWithLabelAndType(label, MenuItemType.normal);
-    if (item == null) return;
-    item.isEnabled = enabled;
-    if (enabled && onClick != null) {
-      item.addListener((event) {
-        if (event is MenuItemClickedEvent) unawaited(onClick());
-      });
+  void _populateMenu(Menu menu, List<LinuxTrayMenuEntry> entries) {
+    for (final entry in entries) {
+      switch (entry.kind) {
+        case LinuxTrayMenuItemKind.separator:
+          menu.addSeparator();
+        case LinuxTrayMenuItemKind.normal:
+          final item = MenuItem.createWithLabelAndType(
+            entry.label,
+            MenuItemType.normal,
+          );
+          if (item == null) continue;
+          item.isEnabled = entry.enabled;
+          if (entry.enabled && entry.action != null) {
+            final action = entry.action!;
+            item.addListener((event) {
+              if (event is MenuItemClickedEvent) {
+                unawaited(_dispatchAction(action));
+              }
+            });
+          }
+          menu.addItem(item);
+        case LinuxTrayMenuItemKind.checkbox:
+          final item = MenuItem.createWithLabelAndType(
+            entry.label,
+            MenuItemType.checkbox,
+          );
+          if (item == null) continue;
+          item.isEnabled = entry.enabled;
+          item.state = entry.checked
+              ? MenuItemState.checked
+              : MenuItemState.unchecked;
+          if (entry.enabled && entry.action != null) {
+            final action = entry.action!;
+            item.addListener((event) {
+              if (event is MenuItemClickedEvent) {
+                unawaited(_dispatchAction(action));
+              }
+            });
+          }
+          menu.addItem(item);
+        case LinuxTrayMenuItemKind.radio:
+          final item = MenuItem.createWithLabelAndType(
+            entry.label,
+            MenuItemType.radio,
+          );
+          if (item == null) continue;
+          item.isEnabled = entry.enabled;
+          if (entry.radioGroup != null) {
+            item.radioGroup = entry.radioGroup!;
+          }
+          item.state = entry.checked
+              ? MenuItemState.checked
+              : MenuItemState.unchecked;
+          if (entry.enabled && entry.action != null) {
+            final action = entry.action!;
+            item.addListener((event) {
+              if (event is MenuItemClickedEvent) {
+                unawaited(_dispatchAction(action));
+              }
+            });
+          }
+          menu.addItem(item);
+        case LinuxTrayMenuItemKind.submenu:
+          final submenu = Menu.create();
+          final item = MenuItem.createWithLabelAndType(
+            entry.label,
+            MenuItemType.submenu,
+          );
+          if (submenu == null || item == null) continue;
+          item.isEnabled = entry.enabled;
+          if (entry.children.isNotEmpty) {
+            _populateMenu(submenu, entry.children);
+            item.submenu = submenu;
+          }
+          menu.addItem(item);
+      }
     }
-    menu.addItem(item);
+  }
+
+  Future<void> _dispatchAction(LinuxTrayAction action) async {
+    switch (action) {
+      case OpenNowPlayingTrayAction():
+        if (_callbacks.onOpenNowPlaying != null) {
+          await _callbacks.onOpenNowPlaying!();
+        } else {
+          _showWindow();
+        }
+      case PlayPauseTrayAction():
+        if (_callbacks.onPlayPause != null) {
+          await _callbacks.onPlayPause!();
+        } else {
+          await _sendPlayPauseAction();
+        }
+      case PreviousTrayAction():
+        if (_callbacks.onPrevious != null) {
+          await _callbacks.onPrevious!();
+        } else {
+          await _audioHandler?.skipToPrevious();
+        }
+      case NextTrayAction():
+        if (_callbacks.onNext != null) {
+          await _callbacks.onNext!();
+        } else {
+          await _audioHandler?.skipToNext();
+        }
+      case ToggleLikeTrayAction():
+        if (_callbacks.onToggleLike != null) {
+          await _callbacks.onToggleLike!();
+        } else {
+          await _audioHandler?.toggleCurrentLike();
+        }
+      case ToggleShuffleTrayAction():
+        if (_callbacks.onToggleShuffle != null) {
+          await _callbacks.onToggleShuffle!();
+        } else {
+          await _toggleShuffle();
+        }
+      case SetRepeatTrayAction(:final mode):
+        if (_callbacks.onSetRepeatMode != null) {
+          await _callbacks.onSetRepeatMode!(mode);
+        } else {
+          await _audioHandler?.setRepeatMode(mode);
+        }
+      case SkipToQueueIndexTrayAction(:final index):
+        if (_callbacks.onSkipToQueueIndex != null) {
+          await _callbacks.onSkipToQueueIndex!(index);
+        } else {
+          await _audioHandler?.skipToQueueItem(index);
+        }
+      case SetSleepMinutesTrayAction(:final minutes):
+        _callbacks.onSetSleepMinutes?.call(minutes);
+      case SetSleepEndOfTrackTrayAction():
+        _callbacks.onSetSleepEndOfTrack?.call();
+      case ToggleMuteTrayAction():
+        if (_callbacks.onToggleMute != null) {
+          _callbacks.onToggleMute!();
+        } else {
+          _audioHandler?.toggleMute();
+        }
+      case SetVolumePercentTrayAction(:final percent):
+        if (_callbacks.onSetVolumePercent != null) {
+          _callbacks.onSetVolumePercent!(percent);
+        } else {
+          _audioHandler?.setUserVolume(percent / 100.0);
+        }
+      case ToggleOfflineTrayAction():
+        await _callbacks.onToggleOffline?.call();
+      case NavigateTrayAction(:final route):
+        await _callbacks.onNavigate?.call(route);
+      case ToggleWindowVisibilityTrayAction():
+        if (_snapshot.isWindowVisible) {
+          LinuxTrayService.hideWindow();
+        } else {
+          _showWindow();
+        }
+      case ResumeLastTrayAction():
+        if (_callbacks.onResumeLast != null) {
+          await _callbacks.onResumeLast!();
+        } else {
+          await _audioHandler?.play();
+        }
+      case ShuffleLikedTrayAction():
+        await _callbacks.onShuffleLiked?.call();
+      case QuitTrayAction():
+        await _quit();
+    }
   }
 
   void _showWindow() {
@@ -230,39 +413,20 @@ class LinuxTrayService {
   }
 
   Future<void> _toggleShuffle() async {
-    final newMode = _shuffleMode == AudioServiceShuffleMode.none
+    final newMode = _snapshot.shuffleMode == AudioServiceShuffleMode.none
         ? AudioServiceShuffleMode.all
         : AudioServiceShuffleMode.none;
     await _audioHandler?.setShuffleMode(newMode);
   }
 
-  Future<void> _cycleRepeatMode() async {
-    const modes = [
-      AudioServiceRepeatMode.none,
-      AudioServiceRepeatMode.all,
-      AudioServiceRepeatMode.one,
-    ];
-    final idx = modes.indexOf(_repeatMode);
-    final next = modes[(idx + 1) % modes.length];
-    await _audioHandler?.setRepeatMode(next);
-  }
-
   Future<void> _sendPlayPauseAction() async {
     if (_audioHandler != null) {
-      if (_isPlaying) {
+      if (_snapshot.isPlaying) {
         await _audioHandler!.pause();
       } else {
         await _audioHandler!.play();
       }
     }
-  }
-
-  Future<void> _sendPreviousAction() async {
-    await _audioHandler?.skipToPrevious();
-  }
-
-  Future<void> _sendNextAction() async {
-    await _audioHandler?.skipToNext();
   }
 
   void dispose() {

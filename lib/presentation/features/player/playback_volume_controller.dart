@@ -1,7 +1,7 @@
 import 'playback_engine.dart';
 
-/// Owns the player's output volume: crossfade envelope, transition mute and
-/// the cast-aware local volume application.
+/// Owns the player's output volume: master user volume, mute state, crossfade
+/// envelope, transition mute and the cast-aware local volume application.
 ///
 /// Volume is always in the 0..1 range. Does not hold a back-reference to
 /// [SonoraAudioHandler]; the cast state is injected as the narrow
@@ -12,7 +12,10 @@ class PlaybackVolumeController {
 
   Duration _crossfadeDuration = Duration.zero;
   bool _isFadingIn = false;
-  double _lastSetVolume = 1.0;
+  double _userVolume = 1.0;
+  bool _isMuted = false;
+  double _fadeFactor = 1.0;
+  double _lastAppliedVolume = 1.0;
   bool _isTransitionMuted = false;
 
   PlaybackVolumeController({
@@ -25,13 +28,36 @@ class PlaybackVolumeController {
   /// and `position` listeners.
   bool get isTransitionMuted => _isTransitionMuted;
 
-  /// The last logical volume applied by the crossfade envelope, in the 0..1
-  /// range. Read by [CastPlaybackController] to restore volume on disconnect.
-  double get lastSetVolume => _lastSetVolume;
+  /// Master user volume in the 0..1 range.
+  double get userVolume => _userVolume;
+
+  /// Whether output audio is muted by the user.
+  bool get isMuted => _isMuted;
+
+  /// Effective output volume combining [userVolume], [isMuted], and the
+  /// active crossfade envelope.
+  double get effectiveVolume =>
+      _isMuted ? 0.0 : (_userVolume * _fadeFactor).clamp(0.0, 1.0);
+
+  /// The last logical volume applied by the volume/crossfade envelope, in the
+  /// 0..1 range. Read by [CastPlaybackController] to restore volume on disconnect.
+  double get lastSetVolume => effectiveVolume;
+
+  void setUserVolume(double volume) {
+    final v = volume.clamp(0.0, 1.0);
+    _userVolume = v;
+    _isMuted = v <= 0.0;
+    _applyEffectiveVolume(force: true);
+  }
+
+  void setMuted(bool muted) {
+    _isMuted = muted;
+    _applyEffectiveVolume(force: true);
+  }
 
   void setCrossfadeDuration(Duration duration) {
     _crossfadeDuration = duration;
-    if (duration == Duration.zero) _applyVolume(1.0);
+    if (duration == Duration.zero) _applyFade(1.0);
   }
 
   void prepareTransitionMute() {
@@ -44,8 +70,9 @@ class PlaybackVolumeController {
   void endTransitionMute() {
     if (!_isTransitionMuted) return;
 
-    setLocalVolume(_lastSetVolume);
     _isTransitionMuted = false;
+    _lastAppliedVolume = effectiveVolume;
+    setLocalVolume(effectiveVolume);
   }
 
   void setLocalVolume(double volume, {bool force = false}) {
@@ -62,12 +89,17 @@ class PlaybackVolumeController {
     _engine.setVolume(volume);
   }
 
-  void _applyVolume(double volume) {
-    final v = volume.clamp(0.0, 1.0);
-    if ((v - _lastSetVolume).abs() > 0.005) {
-      _lastSetVolume = v;
+  void _applyFade(double factor) {
+    _fadeFactor = factor.clamp(0.0, 1.0);
+    _applyEffectiveVolume();
+  }
+
+  void _applyEffectiveVolume({bool force = false}) {
+    final target = effectiveVolume;
+    if (force || (target - _lastAppliedVolume).abs() > 0.005) {
+      _lastAppliedVolume = target;
       if (!_isTransitionMuted) {
-        setLocalVolume(v);
+        setLocalVolume(target);
       }
     }
   }
@@ -77,7 +109,7 @@ class PlaybackVolumeController {
   void beginFadeIn() {
     if (_crossfadeDuration > Duration.zero && _engine.state.playing) {
       _isFadingIn = true;
-      _applyVolume(0.0);
+      _applyFade(0.0);
     }
   }
 
@@ -90,21 +122,19 @@ class PlaybackVolumeController {
       final fadeMs = _crossfadeDuration.inMilliseconds;
       final vol = fadeMs > 0 ? position.inMilliseconds / fadeMs : 1.0;
       if (vol >= 1.0) {
-        _applyVolume(1.0);
+        _applyFade(1.0);
         _isFadingIn = false;
       } else {
-        _applyVolume(vol);
+        _applyFade(vol);
       }
       return;
     }
 
     final remaining = duration - position;
     if (remaining > Duration.zero && remaining <= _crossfadeDuration) {
-      _applyVolume(
-        remaining.inMilliseconds / _crossfadeDuration.inMilliseconds,
-      );
+      _applyFade(remaining.inMilliseconds / _crossfadeDuration.inMilliseconds);
     } else if (remaining > _crossfadeDuration) {
-      _applyVolume(1.0);
+      _applyFade(1.0);
     }
   }
 }

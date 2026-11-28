@@ -1384,5 +1384,33 @@
     }
   },
   "aaErrorOffline": "No internet connection",
-  "aaErrorPlaybackFailed": "Unable to play this track"
+  "aaErrorPlaybackFailed": "Unable to play this track",
+  "trayPlaying": "Playing",
+  "trayPaused": "Paused",
+  "trayEpisode": "Episode",
+  "trayNothingPlaying": "Nothing playing",
+  "trayPlay": "Play",
+  "trayPause": "Pause",
+  "trayPrevious": "Previous",
+  "trayNext": "Next",
+  "trayLikeTrack": "Like track",
+  "traySaveEpisode": "Save episode",
+  "trayRepeat": "Repeat",
+  "trayUpNext": "Up Next",
+  "traySleepOff": "Off",
+  "traySleepEndOfTrack": "End of track",
+  "traySleepMinutes": "{minutes} min",
+  "@traySleepMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "trayVolume": "Volume",
+  "trayMute": "Mute audio",
+  "trayQuickOpen": "Go to",
+  "trayShowWindow": "Show Sonora",
+  "trayHideWindow": "Hide to tray",
+  "trayQuit": "Quit Sonora",
+  "trayResumeLast": "Resume playback",
+  "trayShuffleLiked": "Shuffle liked songs"
 }

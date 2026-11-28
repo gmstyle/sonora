@@ -3134,4 +3134,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aaErrorPlaybackFailed => 'Unable to play this track';
+
+  @override
+  String get trayPlaying => 'Playing';
+
+  @override
+  String get trayPaused => 'Paused';
+
+  @override
+  String get trayEpisode => 'Episode';
+
+  @override
+  String get trayNothingPlaying => 'Nothing playing';
+
+  @override
+  String get trayPlay => 'Play';
+
+  @override
+  String get trayPause => 'Pause';
+
+  @override
+  String get trayPrevious => 'Previous';
+
+  @override
+  String get trayNext => 'Next';
+
+  @override
+  String get trayLikeTrack => 'Like track';
+
+  @override
+  String get traySaveEpisode => 'Save episode';
+
+  @override
+  String get trayRepeat => 'Repeat';
+
+  @override
+  String get trayUpNext => 'Up Next';
+
+  @override
+  String get traySleepOff => 'Off';
+
+  @override
+  String get traySleepEndOfTrack => 'End of track';
+
+  @override
+  String traySleepMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get trayVolume => 'Volume';
+
+  @override
+  String get trayMute => 'Mute audio';
+
+  @override
+  String get trayQuickOpen => 'Go to';
+
+  @override
+  String get trayShowWindow => 'Show Sonora';
+
+  @override
+  String get trayHideWindow => 'Hide to tray';
+
+  @override
+  String get trayQuit => 'Quit Sonora';
+
+  @override
+  String get trayResumeLast => 'Resume playback';
+
+  @override
+  String get trayShuffleLiked => 'Shuffle liked songs';
 }

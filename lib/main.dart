@@ -22,6 +22,7 @@ import 'core/utils/android_tv.dart';
 import 'core/utils/linux_single_instance.dart';
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
+import 'core/utils/linux_tray_models.dart';
 import 'core/utils/linux_tray_service.dart';
 import 'data/datasources/ai/deepseek_http_datasource.dart';
 import 'data/datasources/local/database_connection.dart';
@@ -43,11 +44,14 @@ import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
 import 'data/services/youtube_session_store.dart';
 import 'domain/models/media_quality.dart';
+import 'domain/models/queue_track.dart';
 import 'domain/usecases/download/cleanup_incomplete_downloads_use_case.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
+import 'presentation/features/library/providers/library_provider.dart';
 import 'presentation/features/player/audio_handler.dart';
+import 'presentation/features/player/full_player_content.dart';
 import 'presentation/features/tv/tv_metrics.dart';
 import 'presentation/providers/android_tv_provider.dart';
 import 'presentation/providers/ask_llm_provider.dart';
@@ -56,6 +60,7 @@ import 'presentation/providers/connectivity_provider.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/download_notification_service.dart';
 import 'presentation/providers/download_provider.dart';
+import 'presentation/providers/library_notifier.dart';
 import 'presentation/providers/library_repository_provider.dart';
 import 'presentation/providers/linux_update_providers.dart';
 import 'presentation/providers/music_repository_provider.dart';
@@ -251,7 +256,7 @@ Future<void> main() async {
       if (event case WindowCloseRequestedEvent(:final request)) {
         if (!LinuxTrayService.isQuitRequested) {
           request.cancel();
-          window.hide();
+          LinuxTrayService.hideWindow();
         }
       }
     });
@@ -626,23 +631,6 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       }
     });
 
-    ref.listen(playerStateProvider, (prev, next) {
-      if (isLinux) {
-        if (prev?.isPlaying != next.isPlaying ||
-            prev?.currentSong?.id != next.currentSong?.id ||
-            prev?.shuffleMode != next.shuffleMode ||
-            prev?.repeatMode != next.repeatMode) {
-          LinuxTrayService.instance?.updatePlaybackState(
-            next.isPlaying,
-            title: next.currentSong?.title,
-            artist: next.currentSong?.artist,
-            shuffleMode: next.shuffleMode,
-            repeatMode: next.repeatMode,
-          );
-        }
-      }
-    });
-
     // Keep queue proxy URLs in sync with stream quality prefs.
     ref.listen(settingsProvider.select((s) => s.streamAudioQuality), (
       previous,
@@ -708,7 +696,323 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       theme: isTv ? darkTheme : lightTheme,
       darkTheme: darkTheme,
       themeMode: isTv ? ThemeMode.dark : themeMode,
+      builder: (context, child) {
+        final body = child ?? const SizedBox.shrink();
+        if (!isLinux) return body;
+        return _LinuxTrayHost(child: body);
+      },
     );
+  }
+}
+
+/// Bridges Riverpod playback/library/settings state and [AppLocalizations] into
+/// [LinuxTrayService].
+class _LinuxTrayHost extends ConsumerStatefulWidget {
+  final Widget child;
+
+  const _LinuxTrayHost({required this.child});
+
+  @override
+  ConsumerState<_LinuxTrayHost> createState() => _LinuxTrayHostState();
+}
+
+class _LinuxTrayHostState extends ConsumerState<_LinuxTrayHost> {
+  final List<ProviderSubscription<dynamic>> _subs = [];
+  ProviderSubscription<AsyncValue<Object?>>? _likedSub;
+  String? _likedTrackKey;
+  bool _isLiked = false;
+  bool _hasLikedSongs = false;
+  bool _isOffline = false;
+  bool _syncPending = false;
+  LinuxTrayLabels _latestLabels = LinuxTrayLabels.fallbackEn;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureCallbacks();
+
+    // Listen manually via Riverpod rather than build()+addPostFrameCallback so
+    // tray state stays reactive even when the GTK/Wayland window is hidden
+    // in the tray and Flutter is not producing frames.
+    _subs.add(
+      ref.listenManual(
+        playerStateProvider.select(
+          (s) => (
+            isPlaying: s.isPlaying,
+            currentSong: s.currentSong,
+            queue: s.queue,
+            currentIndex: s.currentIndex,
+            shuffleMode: s.shuffleMode,
+            repeatMode: s.repeatMode,
+            sleepRemainingMinutes: s.sleepTimerRemaining == null
+                ? null
+                : (s.sleepTimerRemaining!.inSeconds / 60).ceil().clamp(1, 999),
+            sleepUntilEndOfTrack: s.sleepUntilEndOfTrack,
+            volumePercent: (s.volume * 100).round().clamp(0, 100),
+            isMuted: s.isMuted,
+          ),
+        ),
+        (_, next) {
+          _syncLikedSubscription(next.currentSong);
+          _scheduleTraySync();
+        },
+        fireImmediately: true,
+      ),
+    );
+
+    _subs.add(
+      ref.listenManual(
+        likedSongsProvider.select((a) => a.asData?.value.isNotEmpty ?? false),
+        (_, next) {
+          _hasLikedSongs = next;
+          _scheduleTraySync();
+        },
+        fireImmediately: true,
+      ),
+    );
+
+    _subs.add(
+      ref.listenManual(isOfflineProvider, (_, next) {
+        _isOffline = next;
+        _scheduleTraySync();
+      }, fireImmediately: true),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context)!;
+    _latestLabels = LinuxTrayLabels(
+      playing: l10n.trayPlaying,
+      paused: l10n.trayPaused,
+      episode: l10n.trayEpisode,
+      offline: l10n.offline,
+      nothingPlaying: l10n.trayNothingPlaying,
+      play: l10n.trayPlay,
+      pause: l10n.trayPause,
+      previous: l10n.trayPrevious,
+      next: l10n.trayNext,
+      likeTrack: l10n.trayLikeTrack,
+      saveEpisode: l10n.traySaveEpisode,
+      shuffle: l10n.shuffle,
+      repeat: l10n.trayRepeat,
+      repeatOff: l10n.repeatOff,
+      repeatAll: l10n.repeatAll,
+      repeatOne: l10n.repeatOne,
+      upNext: l10n.trayUpNext,
+      sleepTimer: l10n.sleepTimer,
+      sleepOff: l10n.traySleepOff,
+      sleepEndOfTrack: l10n.traySleepEndOfTrack,
+      sleepEndOfEpisode: l10n.sleepEndOfEpisode,
+      sleepMinutes: l10n.traySleepMinutes,
+      volume: l10n.trayVolume,
+      mute: l10n.trayMute,
+      offlineMode: l10n.offlineMode,
+      quickOpen: l10n.trayQuickOpen,
+      home: l10n.home,
+      search: l10n.search,
+      library: l10n.library,
+      downloads: l10n.downloads,
+      settings: l10n.settingsLabel,
+      showWindow: l10n.trayShowWindow,
+      hideWindow: l10n.trayHideWindow,
+      quit: l10n.trayQuit,
+      resumeLast: l10n.trayResumeLast,
+      shuffleLiked: l10n.trayShuffleLiked,
+    );
+    _scheduleTraySync();
+  }
+
+  @override
+  void dispose() {
+    _likedSub?.close();
+    for (final sub in _subs) {
+      sub.close();
+    }
+    super.dispose();
+  }
+
+  void _syncLikedSubscription(MediaItem? currentSong) {
+    if (currentSong == null) {
+      if (_likedTrackKey != null) {
+        _likedSub?.close();
+        _likedSub = null;
+        _likedTrackKey = null;
+        _isLiked = false;
+      }
+      return;
+    }
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final key = '${track.isEpisode ? 'ep' : 'song'}:${track.videoId}';
+    if (_likedTrackKey == key) return;
+
+    _likedSub?.close();
+    _likedTrackKey = key;
+    _isLiked = false;
+    _likedSub = track.isEpisode
+        ? ref.listenManual(likedEpisodeProvider(track.videoId), (_, next) {
+            _isLiked = next.asData?.value != null;
+            _scheduleTraySync();
+          }, fireImmediately: true)
+        : ref.listenManual(likedSongProvider(track.videoId), (_, next) {
+            _isLiked = next.asData?.value != null;
+            _scheduleTraySync();
+          }, fireImmediately: true);
+  }
+
+  void _scheduleTraySync() {
+    if (_syncPending) return;
+    _syncPending = true;
+    scheduleMicrotask(() {
+      _syncPending = false;
+      if (!mounted) return;
+      _syncNow();
+    });
+  }
+
+  void _syncNow() {
+    _ensureCallbacks();
+    final tray = LinuxTrayService.instance;
+    if (tray == null) return;
+
+    final s = ref.read(playerStateProvider);
+    final currentSong = s.currentSong;
+    final track = currentSong == null
+        ? null
+        : QueueTrack.fromMediaItem(currentSong);
+    final upNext = <LinuxTrayQueueEntry>[];
+    if (currentSong != null && s.currentIndex + 1 < s.queue.length) {
+      final slice = s.queue.sublist(s.currentIndex + 1);
+      for (var i = 0; i < slice.length && i < 6; i++) {
+        final item = slice[i];
+        upNext.add(
+          LinuxTrayQueueEntry(
+            queueIndex: s.currentIndex + 1 + i,
+            title: item.title,
+            artist: item.artist,
+            duration: item.duration,
+          ),
+        );
+      }
+    }
+
+    final sleepRemainingMinutes = s.sleepTimerRemaining == null
+        ? null
+        : (s.sleepTimerRemaining!.inSeconds / 60).ceil().clamp(1, 999);
+    final isWindowVisible =
+        WindowManager.instance.getCurrent()?.isVisible ?? true;
+
+    final snapshot = LinuxTraySnapshot(
+      isPlaying: s.isPlaying,
+      title: track?.title,
+      artist: track?.artist,
+      isEpisode: track?.isEpisode ?? false,
+      isLiked: _isLiked,
+      shuffleMode: s.shuffleMode,
+      repeatMode: s.repeatMode,
+      upNext: upNext,
+      sleepRemainingMinutes: sleepRemainingMinutes,
+      sleepUntilEndOfTrack: s.sleepUntilEndOfTrack,
+      volumePercent: (s.volume * 100).round().clamp(0, 100),
+      isMuted: s.isMuted,
+      isOffline: _isOffline,
+      isWindowVisible: isWindowVisible,
+      hasQueue: s.queue.isNotEmpty,
+      hasLikedSongs: _hasLikedSongs,
+    );
+
+    tray.updateSnapshot(snapshot, _latestLabels);
+  }
+
+  void _ensureCallbacks() {
+    final tray = LinuxTrayService.instance;
+    if (tray == null) return;
+    tray.setCallbacks(
+      LinuxTrayCallbacks(
+        onOpenNowPlaying: () async {
+          if (!mounted) return;
+          LinuxTrayService.presentWindow();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final navCtx = rootNavigatorKey.currentContext;
+            if (navCtx != null && navCtx.mounted) {
+              openFullPlayer(navCtx);
+            }
+          });
+        },
+        onPlayPause: () =>
+            ref.read(playerStateProvider.notifier).togglePlayPause(),
+        onPrevious: () =>
+            ref.read(playerStateProvider.notifier).skipToPrevious(),
+        onNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
+        onToggleLike: () =>
+            ref.read(playerStateProvider.notifier).toggleCurrentLike(),
+        onToggleShuffle: () =>
+            ref.read(playerStateProvider.notifier).toggleShuffle(),
+        onSetRepeatMode: (mode) =>
+            ref.read(playerStateProvider.notifier).setRepeatMode(mode),
+        onSkipToQueueIndex: (index) =>
+            ref.read(playerStateProvider.notifier).skipToIndex(index),
+        onSetSleepMinutes: (minutes) {
+          final notifier = ref.read(playerStateProvider.notifier);
+          if (minutes == null) {
+            notifier.cancelSleepTimer();
+          } else {
+            notifier.setSleepTimer(Duration(minutes: minutes));
+          }
+        },
+        onSetSleepEndOfTrack: () =>
+            ref.read(playerStateProvider.notifier).setSleepUntilEndOfTrack(),
+        onToggleMute: () => ref.read(playerStateProvider.notifier).toggleMute(),
+        onSetVolumePercent: (percent) =>
+            ref.read(playerStateProvider.notifier).setVolume(percent / 100.0),
+        onToggleOffline: () async {
+          final current = ref.read(settingsProvider).offlineMode;
+          await ref.read(settingsProvider.notifier).setOfflineMode(!current);
+        },
+        onNavigate: (route) async {
+          if (!mounted) return;
+          LinuxTrayService.presentWindow();
+          final router = ref.read(routerProvider);
+          if (route == '/settings') {
+            await router.push('/settings');
+          } else {
+            router.go(route);
+          }
+        },
+        onResumeLast: () =>
+            ref.read(playerStateProvider.notifier).togglePlayPause(),
+        onShuffleLiked: _shuffleLikedFromTray,
+      ),
+    );
+  }
+
+  Future<void> _shuffleLikedFromTray() async {
+    if (!mounted) return;
+    final songs = await ref.read(likedSongsProvider.future);
+    if (songs.isEmpty || !mounted) return;
+    final shuffled = List.of(songs)..shuffle();
+    final useCase = ref.read(playVideoIdUseCaseProvider);
+    final items = <MediaItem>[];
+    for (final song in shuffled.take(30)) {
+      try {
+        items.add(
+          await useCase.execute(
+            song.videoId,
+            isVideoHint: song.isVideo,
+            isExplicitHint: song.isExplicit,
+          ),
+        );
+      } catch (_) {}
+    }
+    if (items.isNotEmpty && mounted) {
+      await ref.read(playerStateProvider.notifier).playNow(items);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
 

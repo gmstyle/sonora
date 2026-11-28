@@ -3148,4 +3148,75 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get aaErrorPlaybackFailed => 'Impossibile riprodurre questo brano';
+
+  @override
+  String get trayPlaying => 'In riproduzione';
+
+  @override
+  String get trayPaused => 'In pausa';
+
+  @override
+  String get trayEpisode => 'Episodio';
+
+  @override
+  String get trayNothingPlaying => 'Nessun brano in riproduzione';
+
+  @override
+  String get trayPlay => 'Riproduci';
+
+  @override
+  String get trayPause => 'Pausa';
+
+  @override
+  String get trayPrevious => 'Precedente';
+
+  @override
+  String get trayNext => 'Successivo';
+
+  @override
+  String get trayLikeTrack => 'Mi piace';
+
+  @override
+  String get traySaveEpisode => 'Salva episodio';
+
+  @override
+  String get trayRepeat => 'Ripeti';
+
+  @override
+  String get trayUpNext => 'In coda';
+
+  @override
+  String get traySleepOff => 'Disattivato';
+
+  @override
+  String get traySleepEndOfTrack => 'Fine brano';
+
+  @override
+  String traySleepMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get trayVolume => 'Volume';
+
+  @override
+  String get trayMute => 'Silenzia audio';
+
+  @override
+  String get trayQuickOpen => 'Vai a';
+
+  @override
+  String get trayShowWindow => 'Mostra Sonora';
+
+  @override
+  String get trayHideWindow => 'Nascondi nella tray';
+
+  @override
+  String get trayQuit => 'Esci da Sonora';
+
+  @override
+  String get trayResumeLast => 'Riprendi riproduzione';
+
+  @override
+  String get trayShuffleLiked => 'Casuale nei preferiti';
 }

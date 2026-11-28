@@ -5462,6 +5462,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to play this track'**
   String get aaErrorPlaybackFailed;
+
+  /// No description provided for @trayPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing'**
+  String get trayPlaying;
+
+  /// No description provided for @trayPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get trayPaused;
+
+  /// No description provided for @trayEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode'**
+  String get trayEpisode;
+
+  /// No description provided for @trayNothingPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing playing'**
+  String get trayNothingPlaying;
+
+  /// No description provided for @trayPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get trayPlay;
+
+  /// No description provided for @trayPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get trayPause;
+
+  /// No description provided for @trayPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get trayPrevious;
+
+  /// No description provided for @trayNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get trayNext;
+
+  /// No description provided for @trayLikeTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Like track'**
+  String get trayLikeTrack;
+
+  /// No description provided for @traySaveEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Save episode'**
+  String get traySaveEpisode;
+
+  /// No description provided for @trayRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get trayRepeat;
+
+  /// No description provided for @trayUpNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Up Next'**
+  String get trayUpNext;
+
+  /// No description provided for @traySleepOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get traySleepOff;
+
+  /// No description provided for @traySleepEndOfTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'End of track'**
+  String get traySleepEndOfTrack;
+
+  /// No description provided for @traySleepMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String traySleepMinutes(int minutes);
+
+  /// No description provided for @trayVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get trayVolume;
+
+  /// No description provided for @trayMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute audio'**
+  String get trayMute;
+
+  /// No description provided for @trayQuickOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to'**
+  String get trayQuickOpen;
+
+  /// No description provided for @trayShowWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Sonora'**
+  String get trayShowWindow;
+
+  /// No description provided for @trayHideWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide to tray'**
+  String get trayHideWindow;
+
+  /// No description provided for @trayQuit.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit Sonora'**
+  String get trayQuit;
+
+  /// No description provided for @trayResumeLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume playback'**
+  String get trayResumeLast;
+
+  /// No description provided for @trayShuffleLiked.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle liked songs'**
+  String get trayShuffleLiked;
 }
 
 class _AppLocalizationsDelegate

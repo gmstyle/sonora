@@ -83,6 +83,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   final _uiPosition = StreamController<Duration>.broadcast();
   final _uiDuration = StreamController<Duration?>.broadcast();
+  final _volumeStream =
+      StreamController<({double volume, bool muted})>.broadcast();
   StreamSubscription<Duration>? _engineUiPosSub;
   StreamSubscription<Duration>? _engineUiDurSub;
   StreamSubscription<PlayErrorEvent>? _headlessPlayErrorSub;
@@ -740,6 +742,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Stream<Duration> get positionStream => _uiPosition.stream;
 
+  double get userVolume => _volumeController.userVolume;
+
+  bool get isMuted => _volumeController.isMuted;
+
+  Stream<({double volume, bool muted})> get volumeStream =>
+      _volumeStream.stream;
+
+  void setUserVolume(double volume) {
+    _volumeController.setUserVolume(volume);
+    if (!_volumeStream.isClosed) {
+      _volumeStream.add((
+        volume: _volumeController.userVolume,
+        muted: _volumeController.isMuted,
+      ));
+    }
+  }
+
+  void setMuted(bool muted) {
+    _volumeController.setMuted(muted);
+    if (!_volumeStream.isClosed) {
+      _volumeStream.add((
+        volume: _volumeController.userVolume,
+        muted: _volumeController.isMuted,
+      ));
+    }
+  }
+
+  void toggleMute() => setMuted(!_volumeController.isMuted);
+
+  Future<void> toggleCurrentLike() => _toggleCurrentLike();
+
   @override
   Future<void> play() async {
     _intent.onPlayAccepted();
@@ -1289,6 +1322,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     unawaited(_connectivitySub?.cancel());
     unawaited(_uiPosition.close());
     unawaited(_uiDuration.close());
+    unawaited(_volumeStream.close());
     _engine.dispose();
   }
 

@@ -1198,5 +1198,33 @@
     }
   },
   "aaErrorOffline": "Nessuna connessione Internet",
-  "aaErrorPlaybackFailed": "Impossibile riprodurre questo brano"
+  "aaErrorPlaybackFailed": "Impossibile riprodurre questo brano",
+  "trayPlaying": "In riproduzione",
+  "trayPaused": "In pausa",
+  "trayEpisode": "Episodio",
+  "trayNothingPlaying": "Nessun brano in riproduzione",
+  "trayPlay": "Riproduci",
+  "trayPause": "Pausa",
+  "trayPrevious": "Precedente",
+  "trayNext": "Successivo",
+  "trayLikeTrack": "Mi piace",
+  "traySaveEpisode": "Salva episodio",
+  "trayRepeat": "Ripeti",
+  "trayUpNext": "In coda",
+  "traySleepOff": "Disattivato",
+  "traySleepEndOfTrack": "Fine brano",
+  "traySleepMinutes": "{minutes} min",
+  "@traySleepMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "trayVolume": "Volume",
+  "trayMute": "Silenzia audio",
+  "trayQuickOpen": "Vai a",
+  "trayShowWindow": "Mostra Sonora",
+  "trayHideWindow": "Nascondi nella tray",
+  "trayQuit": "Esci da Sonora",
+  "trayResumeLast": "Riprendi riproduzione",
+  "trayShuffleLiked": "Casuale nei preferiti"
 }
